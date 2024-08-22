@@ -22,8 +22,8 @@ It allows users to run queries and retrieve results efficiently, making it easie
 To get started with the Dune API CLI Tool, clone the repository and build the project:
 
 ```bash
-git clone <repository-url>
-cd <repository-directory>
+git clone git@github.com:0xrusowsky/dune-cli.git
+cd dune-cli
 cargo build
 ```
 
