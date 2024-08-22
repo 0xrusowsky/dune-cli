@@ -28,7 +28,7 @@ enum Commands {
     Execute {
         /// The unique identifier of the query to execute.
         #[clap(long)]
-        query_id: u64,
+        id: u64,
 
         /// (Optional) Engine size to use for the query execution.
         /// Can be either "medium" or "large". Defaults to "medium".
@@ -70,7 +70,7 @@ async fn main() {
 
     match cli.command {
         Commands::Execute {
-            query_id,
+            id,
             engine_size,
             params,
         } => {
@@ -88,7 +88,7 @@ async fn main() {
                 None => EngineSize::Medium,
             };
             let client = DuneClient::new(api_key);
-            match client.execute_query(query_id, performance, params).await {
+            match client.execute_query(id, performance, params).await {
                 Ok(res) => println!("Response: {:?}", res),
                 Err(e) => {
                     println!("Error: {:?}", e);
