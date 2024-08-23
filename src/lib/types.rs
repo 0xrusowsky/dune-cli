@@ -1,25 +1,12 @@
 use serde::{Deserialize, Serialize, Serializer};
 use serde_json::Value as JsonValue;
 
-// POST: EXECUTE QUERY
-
-#[derive(Debug, Serialize)]
-pub struct ExecuteQueryParams {
-    pub performance: EngineSize,
-    #[serde(rename = "query_parameters")]
-    pub params: Option<JsonValue>,
-}
+// QUERY PARAMS
 
 #[derive(Debug, Clone)]
 pub enum EngineSize {
     Large,
     Medium,
-}
-
-#[derive(Debug, Deserialize)]
-pub struct ExecuteQueryResponse {
-    pub execution_id: String,
-    pub state: String,
 }
 
 impl Serialize for EngineSize {
@@ -32,6 +19,45 @@ impl Serialize for EngineSize {
             EngineSize::Medium => serializer.serialize_str("medium"),
         }
     }
+}
+
+#[derive(Debug, Clone)]
+pub enum Blockchain {
+    Ethereum,
+    Arbitrum,
+    Optimism,
+    Base,
+    Polygon,
+}
+
+impl Serialize for Blockchain {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        match self {
+            Blockchain::Ethereum => serializer.serialize_str("ethereum"),
+            Blockchain::Arbitrum => serializer.serialize_str("arbitrum"),
+            Blockchain::Optimism => serializer.serialize_str("optimism"),
+            Blockchain::Base => serializer.serialize_str("base"),
+            Blockchain::Polygon => serializer.serialize_str("polygon"),
+        }
+    }
+}
+
+// POST: EXECUTE QUERY
+
+#[derive(Debug, Serialize)]
+pub struct ExecuteQueryParams {
+    pub performance: EngineSize,
+    #[serde(rename = "query_parameters")]
+    pub params: Option<JsonValue>,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct ExecuteQueryResponse {
+    pub execution_id: String,
+    pub state: String,
 }
 
 // GET: QUERY EXECUTION RESULTS
