@@ -1,6 +1,6 @@
 #![allow(dead_code)]
 
-use serde::{Deserialize, Serialize, Serializer};
+use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use serde_json::Value as JsonValue;
 
 // QUERY PARAMS
@@ -65,13 +65,23 @@ pub struct ExecuteQueryResponse {
 // GET: QUERY EXECUTION STATE
 #[derive(Debug, Deserialize)]
 pub struct ExecutionStatusResponse {
+    pub execution_id: String,
+    pub query_id: u64,
     pub is_execution_finished: bool,
-    pub datapoint_count: u128,
-    pub total_row_count: u128,
+    pub result_metadata: StatusResultMetadata,
+    #[serde(rename = "state", deserialize_with = "deserialize_status")]
     pub status: ExecutionStatus,
 }
 
 #[derive(Debug, Deserialize)]
+pub struct StatusResultMetadata {
+    pub column_names: Vec<String>,
+    pub column_types: Vec<String>,
+    pub datapoint_count: u64,
+    pub total_row_count: u64,
+}
+
+#[derive(Debug, Deserialize, PartialEq)]
 #[serde(rename_all = "UPPERCASE")]
 pub enum ExecutionStatus {
     QueryStatePending,
@@ -81,6 +91,24 @@ pub enum ExecutionStatus {
     QueryStateCancelled,
     QueryStateExpired,
     QueryStateCompletedPartial,
+}
+
+// Custom deserializer for ExecutionStatus
+fn deserialize_status<'de, D>(deserializer: D) -> Result<ExecutionStatus, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    let s: &str = Deserialize::deserialize(deserializer)?;
+    match s {
+        "QUERY_STATE_PENDING" => Ok(ExecutionStatus::QueryStatePending),
+        "QUERY_STATE_EXECUTING" => Ok(ExecutionStatus::QueryStateExecuting),
+        "QUERY_STATE_FAILED" => Ok(ExecutionStatus::QueryStateFailed),
+        "QUERY_STATE_COMPLETED" => Ok(ExecutionStatus::QueryStateCompleted),
+        "QUERY_STATE_CANCELLED" => Ok(ExecutionStatus::QueryStateCancelled),
+        "QUERY_STATE_EXPIRED" => Ok(ExecutionStatus::QueryStateExpired),
+        "QUERY_STATE_COMPLETED_PARTIAL" => Ok(ExecutionStatus::QueryStateCompletedPartial),
+        _ => Err(serde::de::Error::custom(format!("Invalid variant: {}", s))),
+    }
 }
 
 // GET: QUERY EXECUTION RESULTS
@@ -163,4 +191,54 @@ pub struct QueryResultMetadata {
     pub datapoint_count: u128,
     pub total_row_count: u128,
     pub row_count: u128,
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_execution_status_response_deserialization() {
+        let response: &str = r#"
+            {
+                "execution_id": "01J5ZMD33P6J413G1KQM6QTE4S",
+                "query_id": 4011227,
+                "is_execution_finished": true,
+                "state": "QUERY_STATE_COMPLETED",
+                "submitted_at": "2024-08-23T12:46:55.606607Z",
+                "expires_at": "2024-11-21T13:05:39.370484Z",
+                "execution_started_at": "2024-08-23T12:46:57.221499084Z",
+                "execution_ended_at": "2024-08-23T13:05:39.370482549Z",
+                "result_metadata": {
+                    "column_names": ["address", "balance", "balance_usd"],
+                    "column_types": ["varbinary", "double", "double"],
+                    "row_count": 1068677,
+                    "result_set_bytes": 61983266,
+                    "total_row_count": 1068677,
+                    "total_result_set_bytes": 61983266,
+                    "datapoint_count": 3206031,
+                    "pending_time_millis": 1614,
+                    "execution_time_millis": 1122148
+                }
+            }
+            "#;
+
+        let response: ExecutionStatusResponse = serde_json::from_str(response).unwrap();
+
+        // Assert the values are correctly parsed
+        assert_eq!(response.execution_id, "01J5ZMD33P6J413G1KQM6QTE4S");
+        assert_eq!(response.query_id, 4011227);
+        assert!(response.is_execution_finished);
+        assert_eq!(response.status, ExecutionStatus::QueryStateCompleted);
+        assert_eq!(
+            response.result_metadata.column_names,
+            vec!["address", "balance", "balance_usd"]
+        );
+        assert_eq!(
+            response.result_metadata.column_types,
+            vec!["varbinary", "double", "double"]
+        );
+        assert_eq!(response.result_metadata.total_row_count, 1068677);
+        assert_eq!(response.result_metadata.datapoint_count, 3206031);
+    }
 }

@@ -54,12 +54,12 @@ impl DuneClient {
             .map_err(|_| DuneError::ParseError)
     }
 
-    pub async fn get_execution_state(
+    pub async fn get_execution_status(
         &self,
         execution_id: &str,
     ) -> Result<ExecutionStatusResponse, DuneError> {
         let response = match reqwest::Client::new()
-            .post(format!(
+            .get(format!(
                 "https://api.dune.com/api/v1/execution/{}/status",
                 execution_id
             ))

@@ -39,6 +39,13 @@ enum Commands {
         params: Option<JsonValue>,
     },
 
+    /// Retrieve the execution status of a previously executed query.
+    GetStatus {
+        /// The unique identifier of the execution for which to retrieve results.
+        #[clap(long)]
+        id: String,
+    },
+
     /// Retrieve results for a previously executed query.
     GetResults {
         /// The unique identifier of the execution for which to retrieve results.
@@ -88,6 +95,16 @@ async fn main() {
             };
             let client = DuneClient::new(api_key);
             match client.execute_query(id, performance, params).await {
+                Ok(res) => println!("Response: {:?}", res),
+                Err(e) => {
+                    println!("Error: {:?}", e);
+                    return;
+                }
+            };
+        }
+        Commands::GetStatus { id } => {
+            let client = DuneClient::new(api_key);
+            match client.get_execution_status(&id).await {
                 Ok(res) => println!("Response: {:?}", res),
                 Err(e) => {
                     println!("Error: {:?}", e);
