@@ -28,7 +28,10 @@ impl DuneClient {
             performance,
             params,
         }) {
-            Ok(str) => str,
+            Ok(encoded) => {
+                println!("URL encoded params: {:?}", &encoded);
+                encoded
+            }
             Err(_) => return Err(DuneError::EncodingError),
         };
         let response = match reqwest::Client::new()
