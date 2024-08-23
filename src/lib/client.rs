@@ -1,3 +1,5 @@
+#![allow(dead_code)]
+
 use super::types::*;
 use serde_json::Value as JsonValue;
 
@@ -28,10 +30,7 @@ impl DuneClient {
             performance,
             params,
         }) {
-            Ok(encoded) => {
-                println!("URL encoded params: {:?}", &encoded);
-                encoded
-            }
+            Ok(str) => str,
             Err(_) => return Err(DuneError::EncodingError),
         };
         let response = match reqwest::Client::new()
@@ -50,6 +49,30 @@ impl DuneClient {
 
         response
             .json::<ExecuteQueryResponse>()
+            .await
+            .map_err(|_| DuneError::ParseError)
+    }
+
+    pub async fn get_execution_state(
+        &self,
+        execution_id: &str,
+    ) -> Result<ExecutionStatusResponse, DuneError> {
+        let response = match reqwest::Client::new()
+            .post(format!(
+                "https://api.dune.com/api/v1/execution/{}/status",
+                execution_id
+            ))
+            .header("X-Dune-API-Key", &self.api_key)
+            .header("Content-Type", "application/json")
+            .send()
+            .await
+        {
+            Ok(res) => res,
+            Err(_) => return Err(DuneError::RequestError),
+        };
+
+        response
+            .json::<ExecutionStatusResponse>()
             .await
             .map_err(|_| DuneError::ParseError)
     }
@@ -99,7 +122,6 @@ impl DuneClient {
             Err(_) => return Err(DuneError::RequestError),
         };
 
-        println!("\n{:?}", &response);
         let response = match response.json::<QueryResultsResponse>().await {
             Ok(res) => res,
             Err(_) => {

@@ -1,4 +1,4 @@
-use serde::{Deserialize, Serialize, Serializer};
+use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use serde_json::Value as JsonValue;
 
 // QUERY PARAMS
@@ -58,6 +58,27 @@ pub struct ExecuteQueryParams {
 pub struct ExecuteQueryResponse {
     pub execution_id: String,
     pub state: String,
+}
+
+// GET: QUERY EXECUTION STATE
+#[derive(Debug, Deserialize)]
+pub struct ExecutionStatusResponse {
+    pub is_execution_finished: bool,
+    pub datapoint_count: u128,
+    pub total_row_count: u128,
+    pub status: ExecutionStatus,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "UPPERCASE")]
+pub enum ExecutionStatus {
+    QueryStatePending,
+    QueryStateExecuting,
+    QueryStateFailed,
+    QueryStateCompleted,
+    QueryStateCancelled,
+    QueryStateExpired,
+    QueryStateCompletedPartial,
 }
 
 // GET: QUERY EXECUTION RESULTS
