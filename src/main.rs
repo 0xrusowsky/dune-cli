@@ -1,10 +1,9 @@
-#[path = "dune-client/mod.rs"]
-mod dune_client;
+mod lib;
 mod utils;
 
 use clap::{Parser, Subcommand};
 use dotenv::dotenv;
-use dune_client::{client::DuneClient, types::EngineSize};
+use lib::{client::DuneClient, types::EngineSize};
 use serde_json::Value as JsonValue;
 
 /// Small CLI tool for executing commands of the Dune API Client.
