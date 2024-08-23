@@ -68,7 +68,7 @@ pub struct ExecutionStatusResponse {
     pub execution_id: String,
     pub query_id: u64,
     pub is_execution_finished: bool,
-    pub result_metadata: StatusResultMetadata,
+    pub result_metadata: Option<StatusResultMetadata>,
     #[serde(rename = "state", deserialize_with = "deserialize_status")]
     pub status: ExecutionStatus,
 }
@@ -198,7 +198,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_execution_status_response_deserialization() {
+    fn test_finished_execution_status_response() {
         let response: &str = r#"
             {
                 "execution_id": "01J5ZMD33P6J413G1KQM6QTE4S",
@@ -230,15 +230,36 @@ mod tests {
         assert_eq!(response.query_id, 4011227);
         assert!(response.is_execution_finished);
         assert_eq!(response.status, ExecutionStatus::QueryStateCompleted);
+
+        let metadata = response.result_metadata.unwrap();
         assert_eq!(
-            response.result_metadata.column_names,
+            metadata.column_names,
             vec!["address", "balance", "balance_usd"]
         );
-        assert_eq!(
-            response.result_metadata.column_types,
-            vec!["varbinary", "double", "double"]
-        );
-        assert_eq!(response.result_metadata.total_row_count, 1068677);
-        assert_eq!(response.result_metadata.datapoint_count, 3206031);
+        assert_eq!(metadata.column_types, vec!["varbinary", "double", "double"]);
+        assert_eq!(metadata.total_row_count, 1068677);
+        assert_eq!(metadata.datapoint_count, 3206031);
+    }
+
+    #[test]
+    fn test_in_progress_execution_status_response() {
+        let response: &str = r#"
+            {
+                "execution_id":"01J5ZV5R55K2MA1943RFX994B3",
+                "query_id":4011227,
+                "is_execution_finished":false,
+                "state":"QUERY_STATE_EXECUTING",
+                "submitted_at":"2024-08-23T14:45:15.045773Z",
+                "execution_started_at":"2024-08-23T14:45:16.717963921Z"
+            }
+            "#;
+
+        let response: ExecutionStatusResponse = serde_json::from_str(response).unwrap();
+
+        // Assert the values are correctly parsed
+        assert_eq!(response.execution_id, "01J5ZV5R55K2MA1943RFX994B3");
+        assert_eq!(response.query_id, 4011227);
+        assert!(!response.is_execution_finished);
+        assert_eq!(response.status, ExecutionStatus::QueryStateExecuting);
     }
 }

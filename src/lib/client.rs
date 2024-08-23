@@ -72,6 +72,8 @@ impl DuneClient {
             Err(_) => return Err(DuneError::RequestError),
         };
 
+        // println!("debug: {}", response.text().await.unwrap());
+        // panic!("Test panic");
         response
             .json::<ExecutionStatusResponse>()
             .await
