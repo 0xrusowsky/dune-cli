@@ -127,13 +127,13 @@ pub struct QueryResultsResponse {
     pub result: QueryResult,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Default)]
 pub struct QueryResult {
     pub metadata: QueryResultMetadata,
     pub rows: Vec<JsonValue>,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Default)]
 pub struct QueryResultMetadata {
     pub column_names: Vec<String>,
     pub column_types: Vec<String>,
