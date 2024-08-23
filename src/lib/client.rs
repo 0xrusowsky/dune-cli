@@ -176,4 +176,52 @@ impl DuneClient {
 
         Ok(QueryResult { metadata, rows })
     }
+
+    pub async fn execute_query_and_wait_for_results(
+        &self,
+        query_id: u64,
+        performance: EngineSize,
+        params: Option<JsonValue>,
+        poll_interval: Option<u64>,
+        peak: bool,
+    ) -> Result<QueryResult, DuneError> {
+        match self.execute_query(query_id, performance, params).await {
+            Ok(res) => {
+                println!("Query execution successfully submitted: {:?}", res);
+                let mut has_finished = false;
+                let execution_id = res.execution_id;
+                while !has_finished {
+                    println!(
+                        "Query execution not finished yet. Waiting {} seconds...",
+                        poll_interval.unwrap_or(60)
+                    );
+                    tokio::time::sleep(tokio::time::Duration::from_secs(
+                        poll_interval.unwrap_or(60),
+                    ))
+                    .await;
+                    match self.get_execution_status(&execution_id).await {
+                        Ok(res) => match res.status {
+                            ExecutionStatus::QueryStateExecuting => {}
+                            ExecutionStatus::QueryStatePending => {}
+                            ExecutionStatus::QueryStateCompleted => {
+                                println!("Query execution finished!");
+                                has_finished = true;
+                            }
+                            _ => return Err(DuneError::QueryStatusError(res.status)),
+                        },
+                        Err(e) => {
+                            println!("Error when fetching the query results: {:?}", e);
+                            return Err(e);
+                        }
+                    };
+                }
+
+                self.get_query_results(&execution_id, peak).await
+            }
+            Err(e) => {
+                println!("Error when executing the query: {:?}", e);
+                return Err(e);
+            }
+        }
+    }
 }

@@ -59,7 +59,8 @@ pub struct ExecuteQueryParams {
 #[derive(Debug, Deserialize)]
 pub struct ExecuteQueryResponse {
     pub execution_id: String,
-    pub state: String,
+    #[serde(rename = "state", deserialize_with = "deserialize_status")]
+    pub status: ExecutionStatus,
 }
 
 // GET: QUERY EXECUTION STATE

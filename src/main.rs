@@ -62,6 +62,30 @@ enum Commands {
         #[clap(long)]
         path_csv: Option<String>,
     },
+
+    /// Execute a new query with the Dune API and wait until the results are ready.
+    ExecuteGetResults {
+        /// The unique identifier of the query to execute.
+        #[clap(long)]
+        id: u64,
+
+        /// (Optional) Engine size to use for the query execution.
+        /// Can be either "medium" or "large". Defaults to "medium".
+        #[clap(long)]
+        engine_size: Option<String>,
+
+        /// (Optional) Query parameters in JSON format.
+        #[clap(long)]
+        params: Option<JsonValue>,
+
+        /// (Optional) Whether to retrieve all rows, or only the first 10 records.
+        #[clap(short, long)]
+        peak: Option<bool>,
+
+        /// (Optional) Path where the resulting CSV file should be saved.
+        #[clap(long)]
+        path_csv: Option<String>,
+    },
 }
 
 #[tokio::main]
@@ -121,19 +145,81 @@ async fn main() {
                     return;
                 }
             };
-            if path_csv.is_some() {
-                match utils::save_json_as_csv(
-                    res.rows,
-                    match path_csv.unwrap().as_str() {
-                        "true" => "output.csv",
-                        path => path,
-                    },
+
+            // save results to CSV if path is provided
+            match path_csv {
+                Some(path_csv) => {
+                    match utils::save_json_as_csv(
+                        res.rows,
+                        match path_csv.as_str() {
+                            "true" => "output.csv",
+                            path => path,
+                        },
+                    )
+                    .await
+                    {
+                        Ok(_) => println!("Results saved to CSV"),
+                        Err(e) => println!("Error saving results to CSV file: {:?}", e),
+                    };
+                }
+                None => println!("Results: {:?}", res),
+            }
+        }
+        Commands::ExecuteGetResults {
+            id,
+            engine_size,
+            params,
+            peak,
+            path_csv,
+        } => {
+            let performance = match engine_size {
+                Some(size) => match size.to_lowercase().as_str() {
+                    "medium" => EngineSize::Medium,
+                    "m" => EngineSize::Medium,
+                    "large" => EngineSize::Large,
+                    "l" => EngineSize::Large,
+                    _ => {
+                        println!("Invalid performance level. Use 'medium' or 'large'.");
+                        return;
+                    }
+                },
+                None => EngineSize::Medium,
+            };
+            let client = DuneClient::new(api_key);
+            let res = match client
+                .execute_query_and_wait_for_results(
+                    id,
+                    performance,
+                    params,
+                    None,
+                    peak.unwrap_or(false),
                 )
                 .await
-                {
-                    Ok(_) => println!("Results saved to CSV"),
-                    Err(e) => println!("Error saving results to CSV file: {:?}", e),
-                };
+            {
+                Ok(res) => res,
+                Err(e) => {
+                    println!("Error: {:?}", e);
+                    return;
+                }
+            };
+
+            // save results to CSV if path is provided
+            match path_csv {
+                Some(path_csv) => {
+                    match utils::save_json_as_csv(
+                        res.rows,
+                        match path_csv.as_str() {
+                            "true" => "output.csv",
+                            path => path,
+                        },
+                    )
+                    .await
+                    {
+                        Ok(_) => println!("Results saved to CSV"),
+                        Err(e) => println!("Error saving results to CSV file: {:?}", e),
+                    };
+                }
+                None => println!("Results: {:?}", res),
             }
         }
     }
