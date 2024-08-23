@@ -9,6 +9,7 @@ pub enum DuneError {
     ParseError,
     EncodingError,
     QueryNotFinished,
+    QueryStatusError(ExecutionStatus),
 }
 
 pub struct DuneClient {

@@ -1,4 +1,6 @@
-use serde::{Deserialize, Deserializer, Serialize, Serializer};
+#![allow(dead_code)]
+
+use serde::{Deserialize, Serialize, Serializer};
 use serde_json::Value as JsonValue;
 
 // QUERY PARAMS
