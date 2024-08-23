@@ -187,7 +187,7 @@ async fn main() {
             };
             let client = DuneClient::new(api_key);
             let res = match client
-                .execute_query_and_wait_for_results(
+                .execute_query_and_get_results_when_ready(
                     id,
                     performance,
                     params,
