@@ -27,7 +27,8 @@ impl DuneClient {
         performance: EngineSize,
         params: Option<JsonValue>,
     ) -> Result<ExecuteQueryResponse, DuneError> {
-        let response = match reqwest::Client::new()
+        let client = reqwest::Client::new();
+        let request_builder = client
             .post(format!(
                 "https://api.dune.com/api/v1/query/{}/execute",
                 query_id
@@ -37,12 +38,25 @@ impl DuneClient {
             .json(&ExecuteQueryParams {
                 performance,
                 params,
-            })
-            .send()
-            .await
-        {
+            });
+
+        // Build the request to inspect the body
+        let request = request_builder
+            .try_clone()
+            .expect("Failed to clone request")
+            .build()
+            .expect("Failed to build request");
+
+        // Log the request body
+        if let Some(body) = request.body() {
+            if let Ok(body_str) = String::from_utf8(body.as_bytes().unwrap().to_vec()) {
+                println!("Request body: {}", body_str);
+            }
+        }
+
+        let response = match request_builder.send().await {
             Ok(res) => {
-                println!("{:#?}", res);
+                println!("Response: {:#?}", res);
                 res
             }
             Err(_) => return Err(DuneError::RequestError),
@@ -53,6 +67,33 @@ impl DuneClient {
             .await
             .map_err(|_| DuneError::ParseError)
     }
+
+    //     let response = match reqwest::Client::new()
+    //         .post(format!(
+    //             "https://api.dune.com/api/v1/query/{}/execute",
+    //             query_id
+    //         ))
+    //         .header("X-Dune-API-Key", &self.api_key)
+    //         .header("Content-Type", "application/json")
+    //         .json(&ExecuteQueryParams {
+    //             performance,
+    //             params,
+    //         })
+    //         .send()
+    //         .await
+    //     {
+    //         Ok(res) => {
+    //             println!("{:#?}", res);
+    //             res
+    //         }
+    //         Err(_) => return Err(DuneError::RequestError),
+    //     };
+
+    //     response
+    //         .json::<ExecuteQueryResponse>()
+    //         .await
+    //         .map_err(|_| DuneError::ParseError)
+    // }
 
     pub async fn get_execution_status(
         &self,
