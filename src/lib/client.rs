@@ -1,7 +1,8 @@
 #![allow(dead_code)]
-
 use super::types::*;
+
 use serde_json::Value as JsonValue;
+use tracing::debug;
 
 #[derive(Debug)]
 pub enum DuneError {
@@ -50,13 +51,13 @@ impl DuneClient {
         // Log the request body
         if let Some(body) = request.body() {
             if let Ok(body_str) = String::from_utf8(body.as_bytes().unwrap().to_vec()) {
-                println!("Request body: {}", body_str);
+                debug!("Request body: {}", body_str);
             }
         }
 
         let response = match request_builder.send().await {
             Ok(res) => {
-                println!("Response: {:#?}", res);
+                debug!("Response: {:#?}", res);
                 res
             }
             Err(_) => return Err(DuneError::RequestError),
@@ -86,7 +87,7 @@ impl DuneClient {
             Err(_) => return Err(DuneError::RequestError),
         };
 
-        // println!("debug: {}", response.text().await.unwrap());
+        // debug!("debug: {}", response.text().await.unwrap());
         // panic!("Test panic");
         response
             .json::<ExecutionStatusResponse>()
@@ -136,7 +137,7 @@ impl DuneClient {
             .await
         {
             Ok(res) => {
-                println!("{:#?}", res);
+                debug!("{:#?}", res);
                 res
             }
             Err(_) => return Err(DuneError::RequestError),
@@ -144,7 +145,7 @@ impl DuneClient {
 
         let response = match response.json::<QueryResultsResponse>().await {
             Ok(res) => {
-                println!("\n\n{:#?}", res);
+                debug!("\n\n{:#?}", res);
                 res
             }
             Err(_) => {
@@ -161,16 +162,16 @@ impl DuneClient {
 
         if !peak {
             let mut next_offset = response.next_offset;
-            println!("\n\nnext_offset: {:?}", next_offset);
+            debug!("\n\nnext_offset: {:?}", next_offset);
             while next_offset.is_some() {
-                println!("{:?} records processed...", params.get_offset());
+                debug!("{:?} records processed...", params.get_offset());
                 params.update_offset(next_offset.unwrap());
                 params_encoded = match params.url_encode() {
                     Ok(str) => str,
                     Err(_) => return Err(DuneError::ParseError),
                 };
 
-                println!("params_encoded (updated): {:?}", params_encoded);
+                debug!("params_encoded (updated): {:?}", params_encoded);
                 let response = match reqwest::Client::new()
                     .get(format!(
                         "https://api.dune.com/api/{}?{}",
@@ -181,7 +182,7 @@ impl DuneClient {
                     .await
                 {
                     Ok(res) => {
-                        println!("{:#?}", res);
+                        debug!("{:#?}", res);
                         res
                     }
                     Err(_) => return Err(DuneError::RequestError),
@@ -189,7 +190,7 @@ impl DuneClient {
 
                 let response = match response.json::<QueryResultsResponse>().await {
                     Ok(res) => {
-                        println!("{:#?}", res);
+                        debug!("{:#?}", res);
                         res
                     }
                     Err(_) => {
@@ -215,11 +216,11 @@ impl DuneClient {
     ) -> Result<QueryResult, DuneError> {
         match self.execute_query(query_id, performance, params).await {
             Ok(res) => {
-                println!("Query execution successfully submitted: {:?}", res);
+                debug!("Query execution successfully submitted: {:?}", res);
                 let mut has_finished = false;
                 let execution_id = res.execution_id;
                 while !has_finished {
-                    println!(
+                    debug!(
                         "Query execution not finished yet. Waiting {} seconds...",
                         poll_interval.unwrap_or(60)
                     );
@@ -232,13 +233,13 @@ impl DuneClient {
                             ExecutionStatus::QueryStateExecuting => {}
                             ExecutionStatus::QueryStatePending => {}
                             ExecutionStatus::QueryStateCompleted => {
-                                println!("Query execution finished!");
+                                debug!("Query execution finished!");
                                 has_finished = true;
                             }
                             _ => return Err(DuneError::QueryStatusError(res.status)),
                         },
                         Err(e) => {
-                            println!("Error when fetching the query results: {:?}", e);
+                            debug!("Error when fetching the query results: {:?}", e);
                             return Err(e);
                         }
                     };
@@ -247,7 +248,7 @@ impl DuneClient {
                 self.get_query_results(&execution_id, peak).await
             }
             Err(e) => {
-                println!("Error when executing the query: {:?}", e);
+                debug!("Error when executing the query: {:?}", e);
                 return Err(e);
             }
         }
@@ -261,7 +262,7 @@ impl DuneClient {
     ) -> Result<QueryResult, DuneError> {
         let mut has_finished = false;
         while !has_finished {
-            println!(
+            debug!(
                 "Query execution not finished yet. Waiting {} seconds...",
                 poll_interval.unwrap_or(60)
             );
@@ -274,13 +275,13 @@ impl DuneClient {
                     ExecutionStatus::QueryStateExecuting => {}
                     ExecutionStatus::QueryStatePending => {}
                     ExecutionStatus::QueryStateCompleted => {
-                        println!("Query execution finished!");
+                        debug!("Query execution finished!");
                         has_finished = true;
                     }
                     _ => return Err(DuneError::QueryStatusError(res.status)),
                 },
                 Err(e) => {
-                    println!("Error when fetching the query results: {:?}", e);
+                    debug!("Error when fetching the query results: {:?}", e);
                     return Err(e);
                 }
             };
