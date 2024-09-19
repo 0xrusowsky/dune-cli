@@ -27,22 +27,17 @@ impl DuneClient {
         performance: EngineSize,
         params: Option<JsonValue>,
     ) -> Result<ExecuteQueryResponse, DuneError> {
-        let params = match serde_urlencoded::to_string(ExecuteQueryParams {
-            performance,
-            params,
-        }) {
-            Ok(str) => str,
-            Err(_) => return Err(DuneError::EncodingError),
-        };
-        println!("params: {}", params);
-
         let response = match reqwest::Client::new()
             .post(format!(
-                "https://api.dune.com/api/v1/query/{}/execute?{}",
-                query_id, params
+                "https://api.dune.com/api/v1/query/{}/execute",
+                query_id
             ))
             .header("X-Dune-API-Key", &self.api_key)
             .header("Content-Type", "application/json")
+            .json(&ExecuteQueryParams {
+                performance,
+                params,
+            })
             .send()
             .await
         {
