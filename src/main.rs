@@ -5,6 +5,7 @@ use clap::{Parser, Subcommand};
 use dotenv::dotenv;
 use lib::{client::DuneClient, types::EngineSize};
 use serde_json::Value as JsonValue;
+use tracing::{error, info};
 
 /// Small CLI tool for executing commands of the Dune API Client.
 #[derive(Parser, Debug)]
@@ -111,7 +112,7 @@ async fn main() {
                     "large" => EngineSize::Large,
                     "l" => EngineSize::Large,
                     _ => {
-                        println!("Invalid performance level. Use 'medium' or 'large'.");
+                        error!("Invalid performance level. Use 'medium' or 'large'.");
                         return;
                     }
                 },
@@ -119,9 +120,9 @@ async fn main() {
             };
             let client = DuneClient::new(api_key);
             match client.execute_query(id, performance, params).await {
-                Ok(res) => println!("Response: {:?}", res),
+                Ok(res) => info!("Response: {:?}", res),
                 Err(e) => {
-                    println!("Error: {:?}", e);
+                    error!("Error: {:?}", e);
                     return;
                 }
             };
@@ -129,9 +130,9 @@ async fn main() {
         Commands::GetStatus { id } => {
             let client = DuneClient::new(api_key);
             match client.get_execution_status(&id).await {
-                Ok(res) => println!("Response: {:?}", res),
+                Ok(res) => info!("Response: {:?}", res),
                 Err(e) => {
-                    println!("Error: {:?}", e);
+                    error!("Error: {:?}", e);
                     return;
                 }
             };
@@ -141,7 +142,7 @@ async fn main() {
             let res = match client.get_query_results(&id, peak.unwrap_or(false)).await {
                 Ok(res) => res,
                 Err(e) => {
-                    println!("Error: {:?}", e);
+                    error!("Error: {:?}", e);
                     return;
                 }
             };
@@ -158,11 +159,11 @@ async fn main() {
                     )
                     .await
                     {
-                        Ok(_) => println!("Results saved to CSV"),
-                        Err(e) => println!("Error saving results to CSV file: {:?}", e),
+                        Ok(_) => info!("Results saved to CSV"),
+                        Err(e) => error!("Error saving results to CSV file: {:?}", e),
                     };
                 }
-                None => println!("Results: {:?}", res),
+                None => info!("Results: {:?}", res),
             }
         }
         Commands::ExecuteGetResults {
@@ -179,7 +180,7 @@ async fn main() {
                     "large" => EngineSize::Large,
                     "l" => EngineSize::Large,
                     _ => {
-                        println!("Invalid performance level. Use 'medium' or 'large'.");
+                        error!("Invalid performance level. Use 'medium' or 'large'.");
                         return;
                     }
                 },
@@ -198,7 +199,7 @@ async fn main() {
             {
                 Ok(res) => res,
                 Err(e) => {
-                    println!("Error: {:?}", e);
+                    error!("Error: {:?}", e);
                     return;
                 }
             };
@@ -215,11 +216,11 @@ async fn main() {
                     )
                     .await
                     {
-                        Ok(_) => println!("Results saved to CSV"),
-                        Err(e) => println!("Error saving results to CSV file: {:?}", e),
+                        Ok(_) => info!("Results saved to CSV"),
+                        Err(e) => error!("Error saving results to CSV file: {:?}", e),
                     };
                 }
-                None => println!("Results: {:?}", res),
+                None => info!("Results: {:?}", res),
             }
         }
     }

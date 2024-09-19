@@ -2,7 +2,7 @@
 use super::types::*;
 
 use serde_json::Value as JsonValue;
-use tracing::debug;
+use tracing::{debug, error, info};
 
 #[derive(Debug)]
 pub enum DuneError {
@@ -87,8 +87,6 @@ impl DuneClient {
             Err(_) => return Err(DuneError::RequestError),
         };
 
-        // debug!("debug: {}", response.text().await.unwrap());
-        // panic!("Test panic");
         response
             .json::<ExecutionStatusResponse>()
             .await
@@ -145,7 +143,7 @@ impl DuneClient {
 
         let response = match response.json::<QueryResultsResponse>().await {
             Ok(res) => {
-                debug!("\n\n{:#?}", res);
+                debug!("{:#?}", res);
                 res
             }
             Err(_) => {
@@ -162,7 +160,7 @@ impl DuneClient {
 
         if !peak {
             let mut next_offset = response.next_offset;
-            debug!("\n\nnext_offset: {:?}", next_offset);
+            debug!("next_offset: {:?}", next_offset);
             while next_offset.is_some() {
                 debug!("{:?} records processed...", params.get_offset());
                 params.update_offset(next_offset.unwrap());
@@ -171,7 +169,6 @@ impl DuneClient {
                     Err(_) => return Err(DuneError::ParseError),
                 };
 
-                debug!("params_encoded (updated): {:?}", params_encoded);
                 let response = match reqwest::Client::new()
                     .get(format!(
                         "https://api.dune.com/api/{}?{}",
@@ -216,11 +213,11 @@ impl DuneClient {
     ) -> Result<QueryResult, DuneError> {
         match self.execute_query(query_id, performance, params).await {
             Ok(res) => {
-                debug!("Query execution successfully submitted: {:?}", res);
+                info!("Query execution successfully submitted: {:?}", res);
                 let mut has_finished = false;
                 let execution_id = res.execution_id;
                 while !has_finished {
-                    debug!(
+                    info!(
                         "Query execution not finished yet. Waiting {} seconds...",
                         poll_interval.unwrap_or(60)
                     );
@@ -233,13 +230,13 @@ impl DuneClient {
                             ExecutionStatus::QueryStateExecuting => {}
                             ExecutionStatus::QueryStatePending => {}
                             ExecutionStatus::QueryStateCompleted => {
-                                debug!("Query execution finished!");
+                                info!("Query execution finished!");
                                 has_finished = true;
                             }
                             _ => return Err(DuneError::QueryStatusError(res.status)),
                         },
                         Err(e) => {
-                            debug!("Error when fetching the query results: {:?}", e);
+                            error!("Error when fetching the query results: {:?}", e);
                             return Err(e);
                         }
                     };
@@ -248,7 +245,7 @@ impl DuneClient {
                 self.get_query_results(&execution_id, peak).await
             }
             Err(e) => {
-                debug!("Error when executing the query: {:?}", e);
+                error!("Error when executing the query: {:?}", e);
                 return Err(e);
             }
         }
@@ -281,7 +278,7 @@ impl DuneClient {
                     _ => return Err(DuneError::QueryStatusError(res.status)),
                 },
                 Err(e) => {
-                    debug!("Error when fetching the query results: {:?}", e);
+                    error!("Error when fetching the query results: {:?}", e);
                     return Err(e);
                 }
             };
