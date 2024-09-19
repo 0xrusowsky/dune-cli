@@ -34,6 +34,8 @@ impl DuneClient {
             Ok(str) => str,
             Err(_) => return Err(DuneError::EncodingError),
         };
+        println!("params: {}", params);
+
         let response = match reqwest::Client::new()
             .post(format!(
                 "https://api.dune.com/api/v1/query/{}/execute?{}",
@@ -44,7 +46,10 @@ impl DuneClient {
             .send()
             .await
         {
-            Ok(res) => res,
+            Ok(res) => {
+                println!("{:#?}", res);
+                res
+            }
             Err(_) => return Err(DuneError::RequestError),
         };
 
@@ -121,12 +126,18 @@ impl DuneClient {
             .send()
             .await
         {
-            Ok(res) => res,
+            Ok(res) => {
+                println!("{:#?}", res);
+                res
+            }
             Err(_) => return Err(DuneError::RequestError),
         };
 
         let response = match response.json::<QueryResultsResponse>().await {
-            Ok(res) => res,
+            Ok(res) => {
+                println!("\n\n{:#?}", res);
+                res
+            }
             Err(_) => {
                 return Err(DuneError::ParseError);
             }
@@ -141,14 +152,16 @@ impl DuneClient {
 
         if !peak {
             let mut next_offset = response.next_offset;
+            println!("\n\nnext_offset: {:?}", next_offset);
             while next_offset.is_some() {
                 println!("{:?} records processed...", params.get_offset());
                 params.update_offset(next_offset.unwrap());
-                params_encoded = match serde_urlencoded::to_string(&params) {
+                params_encoded = match params.url_encode() {
                     Ok(str) => str,
                     Err(_) => return Err(DuneError::ParseError),
                 };
 
+                println!("params_encoded (updated): {:?}", params_encoded);
                 let response = match reqwest::Client::new()
                     .get(format!(
                         "https://api.dune.com/api/{}?{}",
@@ -158,12 +171,18 @@ impl DuneClient {
                     .send()
                     .await
                 {
-                    Ok(res) => res,
+                    Ok(res) => {
+                        println!("{:#?}", res);
+                        res
+                    }
                     Err(_) => return Err(DuneError::RequestError),
                 };
 
                 let response = match response.json::<QueryResultsResponse>().await {
-                    Ok(res) => res,
+                    Ok(res) => {
+                        println!("{:#?}", res);
+                        res
+                    }
                     Err(_) => {
                         return Err(DuneError::ParseError);
                     }
