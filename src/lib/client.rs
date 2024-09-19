@@ -68,33 +68,6 @@ impl DuneClient {
             .map_err(|_| DuneError::ParseError)
     }
 
-    //     let response = match reqwest::Client::new()
-    //         .post(format!(
-    //             "https://api.dune.com/api/v1/query/{}/execute",
-    //             query_id
-    //         ))
-    //         .header("X-Dune-API-Key", &self.api_key)
-    //         .header("Content-Type", "application/json")
-    //         .json(&ExecuteQueryParams {
-    //             performance,
-    //             params,
-    //         })
-    //         .send()
-    //         .await
-    //     {
-    //         Ok(res) => {
-    //             println!("{:#?}", res);
-    //             res
-    //         }
-    //         Err(_) => return Err(DuneError::RequestError),
-    //     };
-
-    //     response
-    //         .json::<ExecuteQueryResponse>()
-    //         .await
-    //         .map_err(|_| DuneError::ParseError)
-    // }
-
     pub async fn get_execution_status(
         &self,
         execution_id: &str,
