@@ -159,14 +159,6 @@ async fn main() {
             path_csv,
         } => {
             let client = DuneClient::new(api_key);
-            debug!(
-                "Dune client initialized! Attempting to get results for query: {}",
-                id
-            );
-            println!(
-                "PRINTLN: Dune client initialized! Attempting to get results for query: {}",
-                id
-            );
             let res = match client
                 .get_query_results(
                     &id,
