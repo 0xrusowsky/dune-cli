@@ -47,6 +47,18 @@ impl Serialize for Blockchain {
     }
 }
 
+impl Blockchain {
+    pub fn as_str(&self) -> &str {
+        match self {
+            Blockchain::Ethereum => "ethereum",
+            Blockchain::Arbitrum => "arbitrum",
+            Blockchain::Optimism => "optimism",
+            Blockchain::Base => "base",
+            Blockchain::Polygon => "polygon",
+        }
+    }
+}
+
 // POST: EXECUTE QUERY
 
 #[derive(Debug, Serialize)]
