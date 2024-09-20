@@ -93,31 +93,24 @@ impl DuneClient {
             .map_err(|_| DuneError::ParseError)
     }
 
-    pub async fn get_query_results(&self, id: &str, peak: bool) -> Result<QueryResult, DuneError> {
+    pub async fn get_query_results(
+        &self,
+        id: &str,
+        filters: QueryResultsFilter,
+        peak: bool,
+    ) -> Result<QueryResult, DuneError> {
         let mut rows: Vec<JsonValue> = Vec::new();
         let limit = if peak { 10 } else { 1000 };
         let (url_path, mut params) = match id.parse::<u64>() {
             // if the id is a u64, it must be a query_id
             Ok(query_id) => (
                 format!("v1/query/{}/results", query_id),
-                ResultsParams::Query(QueryResultsParams {
-                    ignore_max_datapoints_per_request: false,
-                    query_id,
-                    offset: 0,
-                    limit,
-                    columns: None,
-                }),
+                ResultsParams::new_query(query_id, false, 0, limit, None, filters),
             ),
             // otherwise, it is an execution_id
             Err(_) => (
                 format!("v1/execution/{}/results", id),
-                ResultsParams::Execution(ExecutionResultsParams {
-                    ignore_max_datapoints_per_request: false,
-                    execution_id: id,
-                    offset: 0,
-                    limit,
-                    columns: None,
-                }),
+                ResultsParams::new_execution(id, false, 0, limit, None, filters),
             ),
         };
         let mut params_encoded = match params.url_encode() {
@@ -242,7 +235,8 @@ impl DuneClient {
                     };
                 }
 
-                self.get_query_results(&execution_id, peak).await
+                self.get_query_results(&execution_id, QueryResultsFilter::new(), peak)
+                    .await
             }
             Err(e) => {
                 error!("Error when executing the query: {:?}", e);
@@ -284,6 +278,7 @@ impl DuneClient {
             };
         }
 
-        self.get_query_results(&execution_id, peak).await
+        self.get_query_results(&execution_id, QueryResultsFilter::new(), peak)
+            .await
     }
 }
