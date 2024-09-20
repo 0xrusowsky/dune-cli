@@ -118,6 +118,7 @@ where
 // for example, `block_time >= '2024-09-01 00:00:00'`
 //
 // TODO: create enum for operators and autogenerate the filter strings
+#[derive(Debug, Clone)]
 pub struct QueryResultsFilter(Vec<String>);
 
 impl QueryResultsFilter {
