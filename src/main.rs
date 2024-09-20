@@ -3,9 +3,12 @@ mod utils;
 
 use clap::{Parser, Subcommand};
 use dotenv::dotenv;
-use lib::{client::DuneClient, types::EngineSize};
+use lib::{
+    client::DuneClient,
+    types::{EngineSize, QueryResultsFilter},
+};
 use serde_json::Value as JsonValue;
-use tracing::{error, info};
+use tracing::{debug, error, info};
 
 /// Small CLI tool for executing commands of the Dune API Client.
 #[derive(Parser, Debug)]
@@ -55,6 +58,10 @@ enum Commands {
         #[clap(long)]
         id: String,
 
+        /// (Optional) Whether to apply a filter to the results or not.
+        #[clap(short, long)]
+        filter: Option<String>,
+
         /// (Optional) Whether to retrieve all rows, or only the first 10 records.
         #[clap(short, long)]
         peak: Option<bool>,
@@ -92,6 +99,14 @@ enum Commands {
 #[tokio::main]
 async fn main() {
     dotenv().ok();
+    let tracing_sub = tracing_subscriber::fmt()
+        .with_max_level(tracing::Level::DEBUG)
+        .with_env_filter(tracing_subscriber::EnvFilter::from_default_env())
+        .with_target(false)
+        .finish();
+    tracing::subscriber::set_global_default(tracing_sub)
+        .expect("Setting tracing subscriber failed");
+
     let cli = Cli::parse();
 
     // ensure API key is set
@@ -137,9 +152,24 @@ async fn main() {
                 }
             };
         }
-        Commands::GetResults { id, peak, path_csv } => {
+        Commands::GetResults {
+            id,
+            filter,
+            peak,
+            path_csv,
+        } => {
             let client = DuneClient::new(api_key);
-            let res = match client.get_query_results(&id, peak.unwrap_or(false)).await {
+            let res = match client
+                .get_query_results(
+                    &id,
+                    match filter {
+                        Some(filter) => QueryResultsFilter::new().add_filter(filter),
+                        None => QueryResultsFilter::new(),
+                    },
+                    peak.unwrap_or(false),
+                )
+                .await
+            {
                 Ok(res) => res,
                 Err(e) => {
                     error!("Error: {:?}", e);

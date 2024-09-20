@@ -114,6 +114,32 @@ where
 
 // GET: QUERY EXECUTION RESULTS
 
+// Filters are supposed to have the correct format: `<column_name> <operator> <value>`
+// for example, `block_time >= '2024-09-01 00:00:00'`
+//
+// TODO: create enum for operators and autogenerate the filter strings
+pub struct QueryResultsFilter(Vec<String>);
+
+impl QueryResultsFilter {
+    pub fn new() -> Self {
+        QueryResultsFilter(Vec::new())
+    }
+
+    pub fn add_filter(self, filter: String) -> Self {
+        let mut new = QueryResultsFilter(self.0);
+        new.0.push(filter);
+        new
+    }
+
+    pub fn to_option_string(&self) -> Option<String> {
+        if self.0.is_empty() {
+            return None;
+        }
+
+        Some(self.0.join(" AND "))
+    }
+}
+
 #[derive(Debug, Serialize)]
 pub enum ResultsParams<'a> {
     Query(QueryResultsParams),
@@ -121,6 +147,41 @@ pub enum ResultsParams<'a> {
 }
 
 impl<'a> ResultsParams<'a> {
+    pub fn new_query(
+        id: u64,
+        ignore_max: bool,
+        offset: u64,
+        limit: u64,
+        columns: Option<Vec<String>>,
+        filters: QueryResultsFilter,
+    ) -> Self {
+        ResultsParams::Query(QueryResultsParams {
+            query_id: id,
+            ignore_max_datapoints_per_request: ignore_max,
+            columns,
+            offset,
+            limit,
+            filters: filters.to_option_string(),
+        })
+    }
+
+    pub fn new_execution(
+        id: &'a str,
+        ignore_max: bool,
+        offset: u64,
+        limit: u64,
+        columns: Option<Vec<String>>,
+        filters: QueryResultsFilter,
+    ) -> Self {
+        ResultsParams::Execution(ExecutionResultsParams {
+            execution_id: id,
+            ignore_max_datapoints_per_request: ignore_max,
+            columns,
+            offset,
+            limit,
+            filters: filters.to_option_string(),
+        })
+    }
     pub fn update_offset(&mut self, new_offset: u64) {
         match self {
             ResultsParams::Query(ref mut query_params) => {
@@ -157,6 +218,7 @@ pub struct ExecutionResultsParams<'a> {
     pub offset: u64,
     pub limit: u64,
     pub ignore_max_datapoints_per_request: bool,
+    pub filters: Option<String>,
 }
 
 // to get the results of the latest execution of a query
@@ -167,6 +229,7 @@ pub struct QueryResultsParams {
     pub offset: u64,
     pub limit: u64,
     pub ignore_max_datapoints_per_request: bool,
+    pub filters: Option<String>,
 }
 
 #[derive(Debug, Deserialize)]
