@@ -50,6 +50,13 @@ enum Commands {
         id: String,
     },
 
+    /// Retrieve metadata of a materialized view.
+    GetMaterializedView {
+        /// The unique identifier (name) of the materialized view for which to retrieve data.
+        #[clap(long)]
+        id: String,
+    },
+
     /// Retrieve results for a previously executed query.
     GetResults {
         /// The unique identifier of the execution for which to retrieve results.
@@ -145,6 +152,16 @@ async fn main() {
         Commands::GetStatus { id } => {
             let client = DuneClient::new(api_key);
             match client.get_execution_status(&id).await {
+                Ok(res) => info!("Response: {:?}", res),
+                Err(e) => {
+                    error!("Error: {:?}", e);
+                    return;
+                }
+            };
+        }
+        Commands::GetMaterializedView { id } => {
+            let client = DuneClient::new(api_key);
+            match client.get_materialized_view_results(&id).await {
                 Ok(res) => info!("Response: {:?}", res),
                 Err(e) => {
                     error!("Error: {:?}", e);

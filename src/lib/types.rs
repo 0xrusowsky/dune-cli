@@ -75,6 +75,15 @@ pub struct ExecuteQueryResponse {
     pub status: ExecutionStatus,
 }
 
+// GET: MATERIALIZED VIEW DATA
+#[derive(Debug, Deserialize)]
+pub struct MaterializedViewResponse {
+    pub id: String,
+    pub is_private: bool,
+    pub query_id: u64,
+    pub last_execution_ids: Vec<String>,
+}
+
 // GET: QUERY EXECUTION STATE
 #[derive(Debug, Deserialize)]
 pub struct ExecutionStatusResponse {

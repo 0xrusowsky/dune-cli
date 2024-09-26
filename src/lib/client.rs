@@ -93,6 +93,30 @@ impl DuneClient {
             .map_err(|_| DuneError::ParseError)
     }
 
+    pub async fn get_materialized_view_results(
+        &self,
+        id: &str,
+    ) -> Result<MaterializedViewResponse, DuneError> {
+        let response = match reqwest::Client::new()
+            .get(format!(
+                "https://api.dune.com/api/v1/materialized-views/{}",
+                id
+            ))
+            .header("X-Dune-API-Key", &self.api_key)
+            .header("Content-Type", "application/json")
+            .send()
+            .await
+        {
+            Ok(res) => res,
+            Err(_) => return Err(DuneError::RequestError),
+        };
+
+        response
+            .json::<MaterializedViewResponse>()
+            .await
+            .map_err(|_| DuneError::ParseError)
+    }
+
     pub async fn get_query_results(
         &self,
         id: &str,
@@ -149,6 +173,7 @@ impl DuneClient {
         }
 
         let metadata = response.result.metadata;
+        debug!("response metadata: {:?}", metadata);
         rows.extend(response.result.rows);
 
         if !peak {
